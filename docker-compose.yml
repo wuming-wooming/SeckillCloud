@@ -11,9 +11,10 @@ services:
       - JVM_XMS=512m
       - JVM_XMX=512m
     ports:
-      - "8848:8848"
-      - "9848:9848"
-      - "8049:8080"
+      - "8848:8848"    # Nacos 服务端 API（客户端连接用）
+      - "9848:9848"    # gRPC 端口（客户端长连接必须）
+      - "9849:9849"    # gRPC 端口（集群间通信）
+      - "8080:8080"    # Nacos 3.0 控制台端口
     volumes:
       - nacos-data:/home/nacos/data
     restart: always
