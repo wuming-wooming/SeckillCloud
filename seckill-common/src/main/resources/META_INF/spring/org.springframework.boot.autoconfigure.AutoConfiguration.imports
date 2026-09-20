@@ -1,0 +1,3 @@
+org.sangoria.common.jwt.JwtAutoConfiguration
+org.sangoria.common.exception.CommonWebAutoConfiguration
+org.sangoria.common.security.PasswordEncoderAutoConfiguration

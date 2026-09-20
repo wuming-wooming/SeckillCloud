@@ -4,13 +4,21 @@ server:
 spring:
   application:
     name: seckill-gateway
+  config:
+    import:
+      - optional:nacos:seckill-common.yml?group=DEFAULT_GROUP&refreshEnabled=true
+      - optional:nacos:seckill-gateway.yml?group=DEFAULT_GROUP&refreshEnabled=true
   cloud:
     nacos:
+      server-addr: 127.0.0.1:8848
+      username: nacos
+      password: nacos
       discovery:
-        server-addr: 127.0.0.1:8848
-        username: nacos
-        password: nacos
         namespace: dev
+      config:
+        namespace: dev
+        group: DEFAULT_GROUP
+        file-extension: yml
     gateway:
       server:
         webmvc:
@@ -25,6 +33,12 @@ spring:
               uri: lb://seckill-product
               predicates:
                 - Path=/api/product/**
+              filters:
+                - StripPrefix=1
+            - id: seckill-order
+              uri: lb://seckill-order
+              predicates:
+                - Path=/api/order/**
               filters:
                 - StripPrefix=1
             - id: seckill-seckill

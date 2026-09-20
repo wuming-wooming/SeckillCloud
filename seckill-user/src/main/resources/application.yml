@@ -3,18 +3,16 @@ spring:
     name: seckill-user
   config:
     import:
-      - optional:nacos:seckill-user.yml
+      - optional:nacos:seckill-common.yml?group=DEFAULT_GROUP&refreshEnabled=true
+      - optional:nacos:seckill-user.yml?group=DEFAULT_GROUP&refreshEnabled=true
   cloud:
     nacos:
+      server-addr: 127.0.0.1:8848
+      username: nacos
+      password: nacos
+      discovery:
+        namespace: dev
       config:
-        server-addr: 127.0.0.1:8848
-        username: nacos
-        password: nacos
         namespace: dev
         group: DEFAULT_GROUP
         file-extension: yml
-      discovery:
-        server-addr: 127.0.0.1:8848
-        username: nacos
-        password: nacos
-        namespace: dev

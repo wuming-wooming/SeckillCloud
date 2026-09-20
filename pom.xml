@@ -10,13 +10,13 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>seckill-common</module>
-        <module>seckill-api</module>
-        <module>seckill-gateway</module>
-        <module>seckill-user</module>
-        <module>seckill-product</module>
-        <module>seckill-order</module>
-        <module>seckill-seckill</module>
+        <module>seckill-common</module> <!-- 通用工具、统一返回、异常、常量 -->
+        <module>seckill-api</module>    <!-- 服务间接口、DTO、@HttpExchange客户端 -->
+        <module>seckill-gateway</module> <!-- API网关 -->
+        <module>seckill-user</module>   <!-- 用户/认证服务 -->
+        <module>seckill-product</module> <!-- 商品/库存服务 -->
+        <module>seckill-order</module>   <!-- 订单/支付服务 -->
+        <module>seckill-seckill</module> <!-- 秒杀活动/秒杀核心服务 -->
     </modules>
 
     <properties>
@@ -24,7 +24,7 @@
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <!-- 版本号请以官方兼容矩阵为准 -->
+        <!-- 版本号以官方兼容矩阵为准 -->
         <spring-boot.version>4.0.0</spring-boot.version>
         <spring-cloud.version>2025.1.0</spring-cloud.version>
         <spring-cloud-alibaba.version>2025.1.0.0</spring-cloud-alibaba.version>
