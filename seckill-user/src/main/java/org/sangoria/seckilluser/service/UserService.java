@@ -50,6 +50,11 @@ public class UserService {
         if (u.getStatus() == null || u.getStatus() != 1) {
             throw new BizException(ErrorCode.USER_DISABLED);
         }
+        // 加密配置平滑过度
+        if (passwordEncoder.upgradeEncoding(u.getPassword())) {
+            u.setPassword(passwordEncoder.encode(req.getPassword()));
+            userMapper.updateById(u);
+        }
         String access = jwtUtil.createAccessToken(u.getId(), u.getUsername(), List.of("ROLE_USER"));
         String refresh = jwtUtil.createRefreshToken(u.getId());
         redis.opsForValue().set(REFRESH_KEY + u.getId(), refresh, Duration.ofHours(12));

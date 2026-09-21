@@ -3,7 +3,7 @@ spring:
     name: seckill-user
   config:
     import:
-      - optional:nacos:seckill-common.yml?group=DEFAULT_GROUP&refreshEnabled=true
+      - nacos:seckill-common.yml?group=DEFAULT_GROUP&refreshEnabled=true
       - optional:nacos:seckill-user.yml?group=DEFAULT_GROUP&refreshEnabled=true
   cloud:
     nacos:

@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: seckill-product
+  config:
+    import:
+      - nacos:seckill-common.yml?group=DEFAULT_GROUP&refreshEnabled=true
+      - optional:nacos:seckill-product.yml?group=DEFAULT_GROUP&refreshEnabled=true
+  cloud:
+    nacos:
+      server-addr: 127.0.0.1:8848
+      username: nacos
+      password: nacos
+      discovery:
+        namespace: dev
+      config:
+        namespace: dev
+        group: DEFAULT_GROUP
+        file-extension: yml

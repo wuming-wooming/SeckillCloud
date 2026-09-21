@@ -18,9 +18,18 @@ public class JwtUtil {
 
     public JwtUtil(JwtProperties props) {
         this.props = props;
-        byte[] bytes = props.getSecret().getBytes(StandardCharsets.UTF_8);
+        String secret = props.getSecret();
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException(
+                    """
+                            seckill.jwt.secret 未配置。请检查：
+                            1. Nacos 中 seckill-common.yml 是否存在于当前 namespace/group；
+                            2. spring.cloud.nacos.config.namespace 是否使用了正确的 namespace ID；
+                            3. spring.config.import 是否使用了 optional: 前缀吞掉了加载失败。""");
+        }
+        byte[] bytes = secret.getBytes(StandardCharsets.UTF_8);
         if (bytes.length < 32) {
-            throw new IllegalStateException("seckill.jwt.secret 长度必须 ≥ 32 字节");
+            throw new IllegalStateException("seckill.jwt.secret 长度必须 ≥ 32 字节，当前 " + bytes.length);
         }
         this.key = Keys.hmacShaKeyFor(bytes);
     }
