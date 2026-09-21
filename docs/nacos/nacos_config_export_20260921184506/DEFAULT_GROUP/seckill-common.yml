@@ -1,0 +1,11 @@
+seckill:
+  jwt:
+    secret: "sangoria-seckill-cloud-jwt-secret-please-change-at-least-32-bytes"
+    access-ttl: 15m
+    refresh-ttl: 12h
+    issuer: seckill-cloud
+  security:
+    password:
+      algorithm: bcrypt
+      strength: 10
+      # secret: ""   # 仅 pbkdf2 需要；bcrypt 可留空

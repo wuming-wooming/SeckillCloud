@@ -1,0 +1,17 @@
+server:
+  port: 9001
+
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://127.0.0.1:5432/micro_db?currentSchema=temp
+    username: dev
+    password: dev123456
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
