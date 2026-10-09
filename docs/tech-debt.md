@@ -19,6 +19,10 @@
 - **无健康检查端点**：未引入 `spring-boot-starter-actuator`，无可视化健康状态。
 - **未做 Caffeine 缓存**：`spring-cloud-loadbalancer` 使用默认缓存实现，生产建议加 `spring-boot-starter-cache` + Caffeine。
 - **未接入链路追踪**：无 Sleuth / Micrometer Tracing，问题定位能力弱。
+### 版本兼容性（Sprint 2 新增）
+- **Seata 与 Nacos 3.0 不兼容**：Seata 2.5.0/2.6.0 内置 nacos-client 1.4.6，2.7.0 内置 2.0.4，均与 Nacos 3.0 的认证协议（`NACOS_AUTH_IDENTITY_KEY` / `VALUE`）不兼容，无法注册。已放弃 Seata，改用「本地消息表 + 定时补偿 + 幂等消费」实现最终一致性。后续若 Nacos 升级至 3.x 兼容版本或 Seata 升级至支持 Nacos 3.0 的版本（预计 3.x），可重新评估。
+- **Sentinel blockHandler 被全局异常处理器拦截**：限流生效但 `blockHandler` 未返回预期错误码。待 T6.2 阶段通过调整 `GlobalExceptionHandler` 或添加 `BlockExceptionHandler` 修复。
+- **非 gateway 模块 LoadBalancer 默认缓存警告**：Caffeine 仅在 gateway 模块引入，其他模块若使用 LoadBalancer 仍会有 `default cache` 警告。Sprint 2 暂不处理，待有明确需求时统一在父 pom 引入。
 
 ## 数据
 
@@ -32,4 +36,4 @@
 - Spring Cloud CircuitBreaker 熔断降级
 - Redis Lua 防超卖
 - Kafka 异步削单
-- Seata AT 模式分布式事务
+- ~~Seata AT 模式分布式事务~~ → **本地消息表 + 定时补偿 + 幂等消费**
