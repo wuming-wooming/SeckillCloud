@@ -54,5 +54,6 @@ Client → Gateway(8081) → Nacos 服务发现 → 下游微服务
 - [x] Sprint 1：基础设施 + 服务骨架 + 认证闭环
 - [ ] Sprint 2：核心秒杀逻辑 + 缓存 + 消息队列 + 分布式事务
   - [x] T0.3 兼容性 Spike（Actuator/Caffeine/Kafka 通过，Sentinel 部分通过，Seata 不兼容）
+  - [x] T3.2 Redis Lua 原子预减库存（单测 20 并发/10 库存，成功 10 失败 10，库存 0）
 - [ ] Sprint 3：容灾降级 + Vue3 后台
 - [ ] Sprint 4：Qt6 桌面端 + 压测 + 部署
