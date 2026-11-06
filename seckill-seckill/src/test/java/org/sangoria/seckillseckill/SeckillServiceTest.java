@@ -1,6 +1,7 @@
 package org.sangoria.seckillseckill;
 
 import org.junit.jupiter.api.Test;
+import org.sangoria.seckillseckill.service.SeckillCode;
 import org.sangoria.seckillseckill.service.SeckillService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -42,11 +43,12 @@ class SeckillServiceTest {
         AtomicInteger failCount = new AtomicInteger(0);
 
         for (int i = 0; i < concurrentRequests; i++) {
+            final long userId = i;
             pool.submit(() -> {
                 ready.countDown();
                 try {
                     start.await();
-                    if (seckillService.trySeckill(activityId)) {
+                    if (seckillService.trySeckill(activityId, userId) == SeckillCode.SUCCESS) {
                         successCount.incrementAndGet();
                     } else {
                         failCount.incrementAndGet();

@@ -4,12 +4,13 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
+import java.util.Arrays;
 
 @Service
 public class SeckillService {
 
     private static final String STOCK_KEY_PREFIX = "seckill:stock:";
+    private static final String USERS_KEY_PREFIX = "seckill:users:";
 
     private final StringRedisTemplate redisTemplate;
     private final DefaultRedisScript<Long> seckillStockScript;
@@ -25,12 +26,14 @@ public class SeckillService {
      * @param activityId 秒杀活动 ID
      * @return true 扣减成功（拿到秒杀资格）; false 库存不足
      */
-    public boolean trySeckill(Long activityId) {
-        String key = STOCK_KEY_PREFIX + activityId;
+    public SeckillCode trySeckill(Long activityId, Long userId) {
+        String stockKey = STOCK_KEY_PREFIX + activityId;
+        String userKey = USERS_KEY_PREFIX + activityId;
         Long result = redisTemplate.execute(
                 seckillStockScript,
-                Collections.singletonList(key)
+                Arrays.asList(stockKey, userKey),
+                String.valueOf(userId)
         );
-        return result != null && result == 1L;
+        return SeckillCode.from(result == null ? 0L : result);
     }
 }

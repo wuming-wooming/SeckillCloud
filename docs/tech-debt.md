@@ -37,3 +37,6 @@
 - Redis Lua 防超卖
 - Kafka 异步削单
 - ~~Seata AT 模式分布式事务~~ → **本地消息表 + 定时补偿 + 幂等消费**
+
+## 压测发现的性能瓶颈（Sprint 2 新增）
+- **高并发下 Tomcat 连接被拒**：在 JMeter 1000 并发（Ramp-up=1s）测试下，出现约 15% 的 `Connection refused`。经排查，并非 Redis 或 Lua 脚本瓶颈（成功请求下库存精确归零，无超卖），而是 Spring Boot 内置 Tomcat 默认最大线程数（200）及 Windows TCP 端口限制所致。**后续改进**：计划在 E6 阶段引入 Sentinel 限流，或在生产环境前置 Nginx / API 网关进行连接数控制与排队削峰。

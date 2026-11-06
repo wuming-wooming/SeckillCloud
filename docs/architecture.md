@@ -59,3 +59,13 @@
 - 老数据（无前缀）通过 setDefaultPasswordEncoderForMatches 兼容
 - 用户登录时通过 upgradeEncoding 自动升级到当前默认算法
 - 算法与强度通过 Nacos 配置 seckill.security.password.* 调整
+
+## 4. 秒杀核心链路（防超卖 + 去重）
+
+1. 用户请求 `POST /api/seckill/{id}/order`，网关 `AuthFilter` 解析 JWT，透传 `X-User-Id`。
+2. 秒杀服务接收请求，将 `activityId` 和 `userId` 传给 Redis。
+3. Redis 执行 Lua 脚本（单线程原子操作）：
+   - 检查 `seckill:stock:{id}` 是否 > 0。
+   - `SADD seckill:users:{id} {userId}`，返回 0 说明重复秒杀，直接拦截。
+   - `DECR seckill:stock:{id}`，扣减库存。
+4. 返回成功，后续进入 Kafka 异步下单流程（待实施）。

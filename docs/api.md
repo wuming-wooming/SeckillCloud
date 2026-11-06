@@ -92,6 +92,34 @@
 
 需携带 `Authorization: Bearer <accessToken>`，响应包含 `userId`。
 
+## 秒杀
+
+### POST /api/seckill/{activityId}/order
+
+请求头：`Authorization: Bearer <accessToken>`
+
+路径参数：`activityId`（秒杀活动 ID）
+
+响应（成功）：
+
+```json
+{ "code": 200, "msg": "success", "data": true }
+```
+
+响应（库存不足）：
+
+```json
+{ "code": 2001, "msg": "库存不足", "data": null }
+```
+
+响应（重复秒杀）：
+
+```json
+{ "code": 2004, "msg": "请勿重复秒杀", "data": null }
+```
+
+说明：Sprint 2 最小闭环仅完成 Redis Lua 原子预减库存 + 用户去重，**不生成真实订单**。后续 Sprint 通过 Kafka 异步下单、本地消息表补偿实现最终一致性。
+
 ## 错误码
 
 | code | 说明 |
@@ -108,3 +136,8 @@
 | 1004 | 用户被禁用 |
 | 1005 | Refresh Token 无效 |
 | 1006 | Token 无效 |
+| 2001 | 秒杀库存不足 |
+| 2002 | 活动未开始 |
+| 2003 | 活动已结束 |
+| 2004 | 请勿重复秒杀 |
+| 2005 | 活动不存在 |

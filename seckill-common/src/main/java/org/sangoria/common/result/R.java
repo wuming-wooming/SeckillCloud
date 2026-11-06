@@ -8,6 +8,12 @@ public class R<T> {
     private String msg;
     private T data;
 
+    public static <T> R<T> ok(String msg, T data) {
+        R<T> r = new R<>();
+        r.code = 200; r.msg = msg; r.data = data;
+        return r;
+    }
+
     public static <T> R<T> ok(T data) {
         R<T> r = new R<>();
         r.code = 200; r.msg = "success"; r.data = data;
