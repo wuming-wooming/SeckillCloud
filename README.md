@@ -54,6 +54,7 @@ Client → Gateway(8081) → Nacos 服务发现 → 下游微服务
 - [x] Sprint 1：基础设施 + 服务骨架 + 认证闭环
 - [ ] Sprint 2：核心秒杀逻辑 + 缓存 + 消息队列 + 分布式事务
   - [x] T0.3 兼容性 Spike（Actuator/Caffeine/Kafka 通过，Sentinel 部分通过，Seata 不兼容）
+  - [x] T1.3 引入 Caffeine LoadBalancer 缓存
   - [x] T3.2 Redis Lua 原子预减库存（单测 20 并发/10 库存，成功 10 失败 10，库存 0）
   - [x] T3.3 用户重复秒杀去重（Lua SADD，同用户多次请求返回 2004）
   - [x] T7.2 JMeter 压测：500 并发/100 库存，0 超卖，平均响应 44ms；1000 并发触发 Tomcat 连接数上限，验证了需接入限流的必要性。

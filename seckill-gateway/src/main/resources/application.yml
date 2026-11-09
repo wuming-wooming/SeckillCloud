@@ -4,7 +4,8 @@ spring:
   config:
     import:
       - nacos:seckill-common.yml?group=DEFAULT_GROUP&refreshEnabled=true
-      - optional:nacos:seckill-gateway.yml?group=DEFAULT_GROUP&refreshEnabled=true
+      - nacos:seckill-gateway.yml?group=DEFAULT_GROUP&refreshEnabled=true
+      - nacos:seckill-gateway-routes.yml?group=DEFAULT_GROUP&refreshEnabled=true
   cloud:
     nacos:
       server-addr: 127.0.0.1:8848
@@ -16,39 +17,3 @@ spring:
         namespace: dev
         group: DEFAULT_GROUP
         file-extension: yml
-    gateway:
-      server:
-        webmvc:
-          routes:
-            - id: seckill-user
-              uri: lb://seckill-user
-              predicates:
-                - Path=/api/user/**
-              filters:
-                - StripPrefix=1
-            - id: seckill-product
-              uri: lb://seckill-product
-              predicates:
-                - Path=/api/product/**
-              filters:
-                - StripPrefix=1
-            - id: seckill-order
-              uri: lb://seckill-order
-              predicates:
-                - Path=/api/order/**
-              filters:
-                - StripPrefix=1
-            - id: seckill-seckill
-              uri: lb://seckill-seckill
-              predicates:
-                - Path=/api/seckill/**
-              filters:
-                - StripPrefix=1
-          globalcors:
-            cors-configurations:
-              '[/**]':
-                allowed-origin-patterns: "*"
-                allowed-methods: "*"
-                allowed-headers: "*"
-                allow-credentials: true
-                max-age: 3600
