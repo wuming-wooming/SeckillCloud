@@ -25,7 +25,11 @@ public enum ErrorCode {
     SECKILL_NOT_STARTED(2002, "活动未开始"),   // T3.4 预留
     SECKILL_ENDED(2003, "活动已结束"),         // T3.4 预留
     SECKILL_DUPLICATE(2004, "请勿重复秒杀"),   // T3.3 预留
-    SECKILL_ACTIVITY_NOT_FOUND(2005, "活动不存在"); // T3.4 预留
+    SECKILL_ACTIVITY_NOT_FOUND(2005, "活动不存在"),// T3.4 预留
+
+    // Product
+    PRODUCT_NOT_FOUND(3001, "商品不存在"),
+    ;
 
     private final int code;
     private final String msg;

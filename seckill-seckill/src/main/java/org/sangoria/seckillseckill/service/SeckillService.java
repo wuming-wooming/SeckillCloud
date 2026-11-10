@@ -1,5 +1,6 @@
 package org.sangoria.seckillseckill.service;
 
+import org.sangoria.common.cache.CacheKey;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
@@ -9,8 +10,8 @@ import java.util.Arrays;
 @Service
 public class SeckillService {
 
-    private static final String STOCK_KEY_PREFIX = "seckill:stock:";
-    private static final String USERS_KEY_PREFIX = "seckill:users:";
+//    private static final String STOCK_KEY_PREFIX = CacheKey.SECKILL_STOCK.prefix();
+//    private static final String USERS_KEY_PREFIX = CacheKey.SECKILL_USERS.prefix();
 
     private final StringRedisTemplate redisTemplate;
     private final DefaultRedisScript<Long> seckillStockScript;
@@ -27,8 +28,10 @@ public class SeckillService {
      * @return true 扣减成功（拿到秒杀资格）; false 库存不足
      */
     public SeckillCode trySeckill(Long activityId, Long userId) {
-        String stockKey = STOCK_KEY_PREFIX + activityId;
-        String userKey = USERS_KEY_PREFIX + activityId;
+//        String stockKey = STOCK_KEY_PREFIX + activityId;
+//        String userKey = USERS_KEY_PREFIX + activityId;
+        String stockKey = CacheKey.SECKILL_STOCK.key(activityId);
+        String userKey = CacheKey.SECKILL_USERS.key(activityId);
         Long result = redisTemplate.execute(
                 seckillStockScript,
                 Arrays.asList(stockKey, userKey),

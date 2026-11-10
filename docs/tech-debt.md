@@ -23,6 +23,18 @@
 - **Seata 与 Nacos 3.0 不兼容**：Seata 2.5.0/2.6.0 内置 nacos-client 1.4.6，2.7.0 内置 2.0.4，均与 Nacos 3.0 的认证协议（`NACOS_AUTH_IDENTITY_KEY` / `VALUE`）不兼容，无法注册。已放弃 Seata，改用「本地消息表 + 定时补偿 + 幂等消费」实现最终一致性。后续若 Nacos 升级至 3.x 兼容版本或 Seata 升级至支持 Nacos 3.0 的版本（预计 3.x），可重新评估。
 - **Sentinel blockHandler 被全局异常处理器拦截**：限流生效但 `blockHandler` 未返回预期错误码。待 T6.2 阶段通过调整 `GlobalExceptionHandler` 或添加 `BlockExceptionHandler` 修复。
 - **非 gateway 模块 LoadBalancer 默认缓存警告**：Caffeine 仅在 gateway 模块引入，其他模块若使用 LoadBalancer 仍会有 `default cache` 警告。Sprint 2 暂不处理，待有明确需求时统一在父 pom 引入。
+### Jackson 2/3 共存（Sprint 2 插入任务）
+
+- **现状**：Spring Boot 4.0.0 默认使用 Jackson 3（`tools.jackson.*`），但 classpath 上同时存在 Jackson 2（`com.fasterxml.jackson.core:*:2.20.x`），来源为：
+    - `jjwt-jackson:0.12.6`（`seckill-common` 传递）——jjwt 编译期绑定 Jackson 2 `ObjectMapper`，**不可排除**；
+    - `nacos-client:3.1.1`（Spring Cloud Alibaba 传递）——Nacos 官方要求 **3.3.0 之前必须保留 Jackson 2**，**不可排除**。
+- **决策**：接受共存。Spring Boot 4 官方支持两者共存，Jackson 2 仅作为上述两个库的内部实现存在，项目代码**零 Jackson 2 databind 引用**。
+- **代码规范**：
+    - 注入 JSON 处理器统一用 `tools.jackson.databind.json.JsonMapper`（Spring Boot 4 自动配置的 Bean 类型），**禁止** `new ObjectMapper()`；
+    - `@JsonFormat`、`@JsonProperty` 等注解保持 `com.fasterxml.jackson.annotation.*`，**不要**改为 `tools.jackson.annotation.*`（该包不存在）；
+    - `@JsonSerialize` / `@JsonDeserialize` 需用 `tools.jackson.databind.annotation.*`；
+    - `StringRedisTemplate` + `JsonMapper` 手动序列化的组合保持不变，**不切换**到 `RedisTemplate<String,Object>` 自动序列化，避免撞上 `GenericJackson2JsonRedisSerializer` 弃用与 default typing 行为变更。
+- **后续评估**：Nacos 升级至 3.3+ 后可考虑排除其 Jackson 2；jjwt 官方宣布 Jackson 3 原生支持后再评估升级。
 
 ## 数据
 
