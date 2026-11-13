@@ -141,6 +141,18 @@ public class SeckillActivityService {
 
         log.info("warmup stock ok: activityId={}, stock={}, ttlSec={}, force={}",
                 activityId, activity.getAvailableStock(), ttlSec, force);
+
+        // 追加：写入活动元数据快照（startTime/endTime/status），供 seckill 服务做时间校验
+        String metaKey = CacheKey.ACTIVITY_META.key(activityId);
+        java.util.Map<String, String> meta = java.util.Map.of(
+                "startTime", activity.getStartTime().toString(),  // ISO-8601
+                "endTime",   activity.getEndTime().toString(),
+                "status",    String.valueOf(activity.getStatus()));
+        redis.opsForHash().putAll(metaKey, meta);
+        redis.expire(metaKey, ttlSec, TimeUnit.SECONDS);
+
+        log.info("warmup meta ok: activityId={}, start={}, end={}, status={}",
+                activityId, activity.getStartTime(), activity.getEndTime(), activity.getStatus());
     }
 
     // ==========================================================

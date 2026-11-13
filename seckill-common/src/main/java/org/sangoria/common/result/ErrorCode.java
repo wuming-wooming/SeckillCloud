@@ -30,6 +30,8 @@ public enum ErrorCode {
     SECKILL_REQUEST_PROCESSING(2006, "请求处理中，请稍后重试"),
     /** T2.5 活动已开始，禁止普通预热（force=true 可覆盖） */
     SECKILL_WARMUP_FORBIDDEN(2007, "活动已开始，禁止预热"),
+    /** T3.6 秒杀结果不存在（requestId 未提交过或已过期） */
+    SECKILL_RESULT_NOT_FOUND(2008, "秒杀结果不存在"),
 
     // Product
     PRODUCT_NOT_FOUND(3001, "商品不存在"),

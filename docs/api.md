@@ -98,27 +98,63 @@
 
 请求头：`Authorization: Bearer <accessToken>`
 
-路径参数：`activityId`（秒杀活动 ID）
-
-响应（成功）：
+请求体：
 
 ```json
-{ "code": 200, "msg": "success", "data": true }
+{ "requestId": "550e8400-e29b-41d4-a716-446655440000", "quantity": 1 }
 ```
 
-响应（库存不足）：
+- `requestId`：**前端生成的 UUID**，必填，长度 ≤ 64。同 requestId 重复提交返回相同结果（幂等）。
+- `quantity`：当前恒为 1（Lua 固定 DECR 1），传其他值返回 400。
+
+**响应统一结构**（HTTP 200，业务结果看 `data.status`）：
 
 ```json
-{ "code": 2001, "msg": "库存不足", "data": null }
+{
+  "code": 200,
+  "msg": "success",
+  "data": {
+    "requestId": "550e8400-...",
+    "activityId": 2,
+    "userId": 1001,
+    "status": "SUCCESS | QUEUING | FAIL",
+    "errorCode": null,
+    "errorMsg": null,
+    "createdAt": "2026-11-13T10:00:00",
+    "updatedAt": "2026-11-13T10:00:01"
+  }
+}
 ```
 
-响应（重复秒杀）：
+| `data.status` | 含义 | 前端动作 |
+|---|---|---|
+| `SUCCESS` | 秒杀资格已获取（`errorCode` 为 null） | 进入支付/订单页 |
+| `QUEUING` | 处理中（同 requestId 并发或前次未完成） | 轮询 `GET /result/{requestId}` |
+| `FAIL` | 业务失败，看 `errorCode`（2001/2002/2003/2004/2005） | 展示对应错误；如需重试请**生成新 requestId** |
 
-```json
-{ "code": 2004, "msg": "请勿重复秒杀", "data": null }
-```
+> `status=QUEUING` 时同时会返回 `code=2006`（见下），前端优先按 `code` 分流到轮询逻辑。
+> **时间字段说明**：`createdAt` / `updatedAt` 遵循项目统一契约 `yyyy-MM-dd HH:mm:ss`（与 Product / SeckillActivity 一致）。
+> 注意：Sprint 2 T3.5 早期版本曾使用 ISO-8601 格式，升级后 Redis 中的旧 `seckill:result:*` 数据会在下次访问时自动 drop，用户重试同 requestId 可正常处理。
 
-说明：Sprint 2 最小闭环仅完成 Redis Lua 原子预减库存 + 用户去重，**不生成真实订单**。后续 Sprint 通过 Kafka 异步下单、本地消息表补偿实现最终一致性。
+**特殊情况**（R.fail 直接返回，无 data）：
+
+| HTTP | code | 场景 |
+|---|---|---|
+| 200 | 2006 | `status=QUEUING` 并发冲突（可视为处理中） |
+| 200 | 401 | 未携带 X-User-Id |
+| 200 | 400 | requestId 空 / quantity ≠ 1 |
+
+### GET /api/seckill/result/{requestId}
+
+请求头：`Authorization: Bearer <accessToken>`
+
+响应：同下单接口的 `data` 结构。
+
+| 场景 | code | 说明 |
+|---|---|---|
+| 存在且 userId 匹配 | 200 | 返回 `data`（任一 status） |
+| requestId 不存在 / 已过期 | 2008 | `秒杀结果不存在` |
+| userId 不匹配 | 403 | 越权访问 |
 
 ### 字段约定（Sprint 2 新增）
 
@@ -192,4 +228,7 @@
 | 2003 | 活动已结束 |
 | 2004 | 请勿重复秒杀 |
 | 2005 | 活动不存在 |
+| 2006 | 请求处理中（秒杀幂等状态机 QUEUING） |
+| 2007 | 活动已开始，禁止预热 |
+| 2008 | 秒杀结果不存在 |
 | 3001 | 商品不存在 |

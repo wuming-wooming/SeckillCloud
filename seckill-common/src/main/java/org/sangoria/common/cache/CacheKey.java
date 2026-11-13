@@ -15,6 +15,8 @@ public enum CacheKey {
     // ---------------- 跨服务共享 ----------------
     /** 活动详情缓存，suffix = 活动 ID。TTL 30min ±5min */
     ACTIVITY_INFO("seckill:activity:info:", 1800),
+    /** 活动元数据快照（startTime/endTime/status），suffix = 活动 ID。TTL 由预热时决定（defaultTtl=0） */
+    ACTIVITY_META("seckill:activity:meta:", 0),
     /** 活动列表缓存（无 suffix）。TTL 60s + 0~60s 抖动 */
     ACTIVITY_LIST("seckill:activity:list", 60),
     /** 库存预热，suffix = 活动 ID。TTL 由预热时按活动结束时间决定（defaultTtl=0） */

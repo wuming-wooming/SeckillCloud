@@ -57,3 +57,6 @@
 - `/internal/**` 本轮未在网关 AuthFilter 拦截 403，Sprint 3 统一做安全（T3.5 排期）。
 - GlobalExceptionHandler 仅返回业务码，HTTP 恒 200；Sprint 3 按 ErrorCode→HttpStatus 映射，2006/2007→409、2001→400。
 - 批量预热 `/internal/activity/warmup-all` 留 Sprint 3 定时任务，本轮仅单活动预热。
+- **T2.6 参数校验 500 → 400 修复**：`@Valid` 失败抛 `MethodArgumentNotValidException`，原 `GlobalExceptionHandler` 无专用 handler 时被兜底为 500 且回传 `e.getMessage()`（泄露内部信息）。已补 5 类 handler（`MethodArgumentNotValidException` / `ConstraintViolationException` / `HttpMessageNotReadableException` / `MissingServletRequestParameterException` / `MethodArgumentTypeMismatchException`），`handleOther` 加 `log.error` 并返回固定提示。
+- **T3.5 Kafka 占位**：`SeckillService.trySeckill` 成功分支有 `TODO[T3.5][E4-Kafka]` 标注，未来在**写 SUCCESS 之前**同步发送 Kafka，发送失败保留 QUEUING 交 T5.3 对账。
+- **`/seckill/result` 横向越权防护**：已通过 `X-User-Id` 与 `result.userId` 比对实现；`requestId` 泄露场景下他人无法查询。
