@@ -1,4 +1,4 @@
-# Jackson 2/3 共存审计（2026-11-XX）
+# Jackson 2/3 共存审计（2026-11-10）
 
 ## 正向扫描（应为空）
 grep -rn "com.fasterxml.jackson.databind\|com.fasterxml.jackson.core\|new ObjectMapper()" --include="*.java" .

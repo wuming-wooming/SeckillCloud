@@ -26,6 +26,10 @@ public enum ErrorCode {
     SECKILL_ENDED(2003, "活动已结束"),         // T3.4 预留
     SECKILL_DUPLICATE(2004, "请勿重复秒杀"),   // T3.3 预留
     SECKILL_ACTIVITY_NOT_FOUND(2005, "活动不存在"),// T3.4 预留
+    /** T2.6 幂等状态机：同 requestId 正在处理中（对账兜底） */
+    SECKILL_REQUEST_PROCESSING(2006, "请求处理中，请稍后重试"),
+    /** T2.5 活动已开始，禁止普通预热（force=true 可覆盖） */
+    SECKILL_WARMUP_FORBIDDEN(2007, "活动已开始，禁止预热"),
 
     // Product
     PRODUCT_NOT_FOUND(3001, "商品不存在"),

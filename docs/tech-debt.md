@@ -52,3 +52,8 @@
 
 ## 压测发现的性能瓶颈（Sprint 2 新增）
 - **高并发下 Tomcat 连接被拒**：在 JMeter 1000 并发（Ramp-up=1s）测试下，出现约 15% 的 `Connection refused`。经排查，并非 Redis 或 Lua 脚本瓶颈（成功请求下库存精确归零，无超卖），而是 Spring Boot 内置 Tomcat 默认最大线程数（200）及 Windows TCP 端口限制所致。**后续改进**：计划在 E6 阶段引入 Sentinel 限流，或在生产环境前置 Nginx / API 网关进行连接数控制与排队削峰。
+
+## Sprint 2 新增
+- `/internal/**` 本轮未在网关 AuthFilter 拦截 403，Sprint 3 统一做安全（T3.5 排期）。
+- GlobalExceptionHandler 仅返回业务码，HTTP 恒 200；Sprint 3 按 ErrorCode→HttpStatus 映射，2006/2007→409、2001→400。
+- 批量预热 `/internal/activity/warmup-all` 留 Sprint 3 定时任务，本轮仅单活动预热。
