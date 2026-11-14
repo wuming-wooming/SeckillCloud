@@ -4,8 +4,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.sangoria.common.cache.CacheKey;
 import org.sangoria.common.exception.BizException;
 import org.sangoria.common.result.ErrorCode;
+import org.sangoria.seckillapi.constant.KafkaTopics;
+import org.sangoria.seckillapi.dto.SeckillOrderMessage;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -24,15 +27,18 @@ public class SeckillService {
     private final DefaultRedisScript<Long> seckillStockScript;
     private final SeckillMetaService metaService;
     private final JsonMapper jsonMapper;
+    private final KafkaTemplate<String, String> kafkaTemplate;
 
     public SeckillService(StringRedisTemplate redisTemplate,
                           DefaultRedisScript<Long> seckillStockScript,
                           SeckillMetaService metaService,
-                          JsonMapper jsonMapper) {
+                          JsonMapper jsonMapper,
+                          KafkaTemplate<String, String> kafkaTemplate) {
         this.redisTemplate = redisTemplate;
         this.seckillStockScript = seckillStockScript;
         this.metaService = metaService;
         this.jsonMapper = jsonMapper;
+        this.kafkaTemplate = kafkaTemplate;
     }
 
     // ==========================================================
@@ -52,6 +58,10 @@ public class SeckillService {
         // ---- 1) 读优化：终态直接返回，避免无谓 SETNX ----
         SeckillResult cached = getResult(requestId);
         if (cached != null) {
+            // P1 修复：不同用户复用同一 requestId 时，不能返回别人的结果
+            if (!java.util.Objects.equals(cached.getUserId(), userId)) {
+                throw new BizException(ErrorCode.PARAM_ERROR);
+            }
             if (cached.isTerminal()) return cached;
             // QUEUING：并发同 requestId 或前次未完成
             throw new BizException(ErrorCode.SECKILL_REQUEST_PROCESSING);
@@ -66,7 +76,12 @@ public class SeckillService {
         if (!Boolean.TRUE.equals(acquired)) {
             // 并发竞态：另一请求已抢到，再读一次看是否已完成
             SeckillResult other = getResult(requestId);
-            if (other != null && other.isTerminal()) return other;
+            if (other != null) {
+                if (!java.util.Objects.equals(other.getUserId(), userId)) {
+                    throw new BizException(ErrorCode.PARAM_ERROR);
+                }
+                if (other.isTerminal()) return other;
+            }
             throw new BizException(ErrorCode.SECKILL_REQUEST_PROCESSING);
         }
 
@@ -93,16 +108,24 @@ public class SeckillService {
             SeckillCode code = SeckillCode.from(luaResult == null ? 0L : luaResult);
 
             if (code == SeckillCode.SUCCESS) {
-                // ============================================================
-                // TODO [T3.5][E4-Kafka] Kafka 消息发送占位点
-                // ------------------------------------------------------------
-                // 未来接入 Kafka 的正确顺序：
-                //   1) 构造消息 {requestId, activityId, userId, productId, quantity, seckillPrice}
-                //   2) kafkaProducer.send(topic, msg).get(3, SECONDS)  // acks=all 同步等待
-                //   3) 发送成功 → 写 SUCCESS；发送失败 → 抛 BIZ_ERROR，保留 QUEUING
-                //      （交 T5.3 对账扫 QUEUING 补发）
-                // 当前 Sprint 2 最小闭环：无 Kafka，直接写 SUCCESS 占位
-                // ============================================================
+                // 1. 构造消息（meta 需已扩展 productId/seckillPrice）
+                SeckillOrderMessage msg = new SeckillOrderMessage(
+                        requestId, activityId, userId,
+                        meta.getProductId(), quantity, meta.getSeckillPrice(), LocalDateTime.now());
+                String payload = toJson(msg);
+
+                // 2. 同步发送，等待 acks=all 确认
+                try {
+                    kafkaTemplate.send(KafkaTopics.SECKILL_ORDER, String.valueOf(activityId), payload)
+                            .get(3, TimeUnit.SECONDS);
+                } catch (Exception e) {
+                    // 发送失败（超时/Broker不可用）：Lua 已 DECR+SADD，绝不能写 FAIL
+                    // 保留 QUEUING，交 T5.3 对账扫描 seckill:users:{id} 补发
+                    log.error("kafka send failed, keep QUEUING: requestId={}", requestId, e);
+                    throw new BizException(ErrorCode.BIZ_ERROR);
+                }
+
+                // 3. 消息确已入 Kafka，再写 SUCCESS
                 SeckillResult success = queuing.success();
                 writeResult(key, success);
                 log.info("seckill success: activityId={}, userId={}, requestId={}",
@@ -161,11 +184,11 @@ public class SeckillService {
         return result;
     }
 
-    private String toJson(SeckillResult r) {
+    private String toJson(Object o) {
         try {
-            return jsonMapper.writeValueAsString(r);
+            return jsonMapper.writeValueAsString(o);
         } catch (Exception e) {
-            throw new IllegalStateException("SeckillResult 序列化失败", e);
+            throw new IllegalStateException("JSON 序列化失败", e);
         }
     }
 }

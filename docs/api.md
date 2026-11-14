@@ -207,6 +207,25 @@
 { "code": 2005, "msg": "活动不存在", "data": null }
 ```
 
+### requestId 使用约束（T4.x 新增）
+
+1. **`requestId` 绑定 `userId`**：同一 requestId 用不同 userId 提交，返回 `400 参数错误`（T4.5 修复，避免信息泄露）。
+2. **`requestId` 终态幂等**：SUCCESS/FAIL 后重复提交返回原结果。
+3. **`requestId` 非终态处理**：QUEUING 状态重复提交返回 `code=2006`，客户端应轮询 `/result/{requestId}`。
+4. **`requestId` 生命周期**：1h TTL，过期后可用同 requestId 重新提交（视为新请求）。
+
+### 秒杀结果最终态（含异步订单处理）
+
+`GET /seckill/result/{requestId}` 返回的 `status` 现在包含**异步订单处理阶段**：
+
+| `status` | 触发时机 | 说明 |
+|---|---|---|
+| `QUEUING` | Producer 发送 Kafka 后、Consumer 完成前 | 轮询即可，最长 1h |
+| `SUCCESS` | Consumer 落库成功 + product 扣库存成功 | **最终态**，进入支付 |
+| `FAIL` | Lua 失败（2001/2002/2003/2004/2005）**或** Consumer 调 product 返回 2001（库存不足） | 需生成新 requestId 重试 |
+
+> **注意**：Sprint 2 的 SUCCESS 从"Lua 预减成功"的语义升级为"DB 库存扣减成功"，两者间隔约 100ms~3s。
+
 ## 错误码
 
 | code | 说明 |

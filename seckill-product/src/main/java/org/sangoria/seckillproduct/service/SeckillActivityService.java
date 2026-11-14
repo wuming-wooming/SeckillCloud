@@ -147,7 +147,9 @@ public class SeckillActivityService {
         java.util.Map<String, String> meta = java.util.Map.of(
                 "startTime", activity.getStartTime().toString(),  // ISO-8601
                 "endTime",   activity.getEndTime().toString(),
-                "status",    String.valueOf(activity.getStatus()));
+                "status",    String.valueOf(activity.getStatus()),
+                "productId", String.valueOf(activity.getProductId()),
+                "seckillPrice", activity.getSeckillPrice().toPlainString());
         redis.opsForHash().putAll(metaKey, meta);
         redis.expire(metaKey, ttlSec, TimeUnit.SECONDS);
 

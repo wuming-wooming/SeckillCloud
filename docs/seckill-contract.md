@@ -49,30 +49,53 @@ QUEUING ── 执行异常（Redis 抖动 / 未来 Kafka 发送失败）──�
 | 库存不足 / 重复 / 未开始 / 已结束 / 活动不存在 | FAIL(2001/2004/2002/2003/2005) | 前端展示对应错误，用户可重试（生成新 requestId） |
 | 执行异常（Redis 或未来 Kafka 发送） | 保留 QUEUING | T5.3 对账任务：扫 QUEUING，比对 `seckill:users:{id}` 与 DB 订单，修正状态 |
 
-## 4. Kafka 契约（Sprint 2 E4 待实施，当前为 TODO 占位）
+## 4. Kafka 契约（T4.1 已实施）
 
 | 项 | 值 |
 |---|---|
-| Topic | `seckill-order-topic` |
+| Topic | `seckill-order-topic`（3 partitions） |
+| DLT Topic | `seckill-order-topic.DLT`（3 partitions） |
 | Partition Key | `activityId`（同活动消息保序） |
-| Producer | seckill 服务，`acks=all` + 幂等 producer（`enable.idempotence=true`） |
+| Producer | seckill 服务，`acks=all` + `enable.idempotence=true` + `max.in.flight=5` |
 | Consumer Group | `seckill-order-consumer-group` |
-| 发送时机 | **Lua 成功后、写 SUCCESS 前**（见 `SeckillService.trySeckill` TODO 标注） |
+| 发送时机 | **Lua 成功后、写 SUCCESS 前**（`SeckillService.sendOrderMessage`） |
+| 发送方式 | `KafkaTemplate.send(...).get(3, SECONDS)` 同步等 ack |
+| 消费 Ack | `manual_immediate`，处理成功后显式 `ack.acknowledge()` |
+| 消费并发 | 3（`listener.concurrency`） |
 
-消息体（JSON）：
+**消息体**（`org.sangoria.seckillapi.dto.SeckillOrderMessage`，record）：
 ```json
 {
   "requestId": "uuid",
-  "activityId": 2,
+  "activityId": 1,
   "userId": 1001,
   "productId": 1,
   "quantity": 1,
-  "seckillPrice": 4999.00,
-  "createdAt": "2026-11-13T10:00:00"
+  "seckillPrice": 3999.00,
+  "createdAt": "2026-11-14 22:35:01"
 }
 ```
 
-投递语义：**至少一次**。消费方按 `requestId` 幂等落库（唯一索引 `uk_request_id`）。
+**投递语义**：至少一次（at-least-once），消费方按 `seckill_order.uk_request_id` 幂等落库。
+
+**失败处理矩阵**：
+
+| 场景 | 处理 | 用户可感知状态 |
+|---|---|---|
+| Kafka 发送失败（Broker 不可用/超时） | 保留 Redis `seckill:result` 为 QUEUING | 500 BIZ_ERROR，1h 后 TTL 过期 |
+| Consumer JSON 反序列化失败 | 直接 ack + ERROR 日志，**不进 DLT** | 订单永不落库，需人工介入 |
+| Consumer product 调用失败（网络/超时/2006） | 重试 3 次（1s 间隔），耗尽进 DLT | Redis 保持 QUEUING |
+| Consumer product 返回 2001 | 订单 FAILED，回写 Redis FAIL(2001) | 用户看到"库存不足" |
+| Consumer 回写 Redis 失败 | 抛异常重试（订单已落库，重试走 Step A 幂等） | 短时 QUEUING，重试成功后 SUCCESS |
+
+**关键不变量**：
+1. 消息进 Kafka 成功 ⟺ 写 Redis SUCCESS。顺序不可颠倒。
+2. Lua 已 DECR + SADD 后，任何失败**都不能写 FAIL**（会让库存永久丢失），必须保留 QUEUING 交 T5.3 对账。
+3. Consumer 重复消费由 `uk_request_id` + `product:deduct:{requestId}` 双重幂等保证。
+
+**变更历史**：
+- T4.1（2026-11-14）：Producer 上线，替换 T3.5 的 TODO 占位
+- T4.2~T4.5（2026-11-14）：Consumer + DLT + 订单落库 + 扣 DB 库存 + 回写结果全部完成
 
 ## 5. 跨服务 HTTP 契约
 

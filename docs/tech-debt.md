@@ -60,3 +60,20 @@
 - **T2.6 参数校验 500 → 400 修复**：`@Valid` 失败抛 `MethodArgumentNotValidException`，原 `GlobalExceptionHandler` 无专用 handler 时被兜底为 500 且回传 `e.getMessage()`（泄露内部信息）。已补 5 类 handler（`MethodArgumentNotValidException` / `ConstraintViolationException` / `HttpMessageNotReadableException` / `MissingServletRequestParameterException` / `MethodArgumentTypeMismatchException`），`handleOther` 加 `log.error` 并返回固定提示。
 - **T3.5 Kafka 占位**：`SeckillService.trySeckill` 成功分支有 `TODO[T3.5][E4-Kafka]` 标注，未来在**写 SUCCESS 之前**同步发送 Kafka，发送失败保留 QUEUING 交 T5.3 对账。
 - **`/seckill/result` 横向越权防护**：已通过 `X-User-Id` 与 `result.userId` 比对实现；`requestId` 泄露场景下他人无法查询。
+
+## Sprint 2 E4 遗留技术债（2026-11-14）
+
+| # | 项 | 影响 | 计划 |
+|---|---|---|---|
+| 1 | `seckill_order.kafka_offset` 只在首次落 PENDING 时记录，DLT 重投后不更新 | 排查时 offset 不准 | T5.3 对账顺带修复 |
+| 2 | Consumer 重试策略 FixedBackOff(1s, 3次)，总 ~3s；product 重启超过 3s 全部进 DLT | 短时抖动会触发 DLT 堆积 | Sprint 3 改 ExponentialBackOff 或调大 maxAttempts |
+| 3 | DLT 消费者未实现（消息只能靠 console 查看） | DLT 无法自动追踪告警 | Sprint 3 加 `@KafkaListener(topics = "...DLT")` 记录到 DB/告警系统 |
+| 4 | `/internal/**` 网关仍未拦截（原技术债延续） | 生产环境必须禁直连 | Sprint 3 统一加 403 |
+| 5 | `GlobalExceptionHandler` 仍使 HTTP 恒 200（除参数校验） | 消费方必须判断 `R.code` 而非 HTTP 状态 | 保持现状，与契约一致 |
+| 6 | `seckill:result:*` QUEUING 状态无主动补偿，依赖 TTL 过期 | 用户最长等 1h 才能重试 | T5.3 对账任务实现后解决 |
+| 7 | Producer 同步 `.get(3s)` 阻塞 Tomcat 线程 | 库存量小不影响，但 1000+ 库存时需评估 | Sprint 3 评估虚拟线程或异步 + 回调写 Redis |
+| 8 | `seckill-order-topic.DLT` 无监控告警 | DLT 堆积不可知 | Sprint 3 加 Actuator 指标或日志告警 |
+
+**E4 已完成但需长期关注**：
+- `SeckillService.trySeckill` 的 requestId 跨用户复用问题已在 T4.5 修复（`Objects.equals(cached.getUserId(), userId)` 校验）
+- `SeckillActivityService.deductStock` 的 `DEDUCT_STATE_PROCESSING` 状态在 product 异常时会保留，需 T5.3 对账清理

@@ -6,6 +6,7 @@ import org.sangoria.common.cache.CacheKey;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Map;
 
@@ -37,6 +38,8 @@ public class SeckillMetaService {
             meta.setStartTime(LocalDateTime.parse((String) entries.get("startTime")));
             meta.setEndTime(LocalDateTime.parse((String) entries.get("endTime")));
             meta.setStatus(Integer.parseInt((String) entries.get("status")));
+            meta.setProductId(Long.parseLong((String) entries.get("productId")));
+            meta.setSeckillPrice(new BigDecimal((String) entries.get("seckillPrice")));
             return meta;
         } catch (Exception e) {
             log.error("meta parse error: activityId={}, entries={}", activityId, entries, e);
@@ -49,5 +52,7 @@ public class SeckillMetaService {
         private LocalDateTime startTime;
         private LocalDateTime endTime;
         private Integer status;
+        private Long productId;
+        private BigDecimal seckillPrice;
     }
 }
