@@ -13,24 +13,23 @@
     <packaging>jar</packaging>
 
     <dependencies>
+        <!-- 只依赖 common，复用 R / ErrorCode；不依赖任何业务模块 -->
         <dependency>
             <groupId>org.sangoria</groupId>
             <artifactId>seckill-common</artifactId>
             <version>${project.version}</version>
         </dependency>
 
+        <!-- @HttpExchange / @PostExchange / @PathVariable / @RequestBody 所需 -->
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-web</artifactId>
         </dependency>
 
+        <!-- DTO 上的 @NotBlank / @Size / @Min / @Max -->
         <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-loadbalancer</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-actuator</artifactId>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
         </dependency>
     </dependencies>
 
